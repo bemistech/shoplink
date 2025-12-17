@@ -1,0 +1,12 @@
+.bde-shopify-page-content {
+    width: 100%;
+}
+
+.bde-shopify-page-title {
+    margin-bottom: 20px;
+}
+
+.bde-shopify-page-body img {
+    max-width: 100%;
+    height: auto;
+}
