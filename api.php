@@ -381,13 +381,41 @@ class ShopifyApi {
      * @param int $limit
      * @return array|WP_Error
      */
-    public static function get_collection_products($collection_handle, $limit = 8) {
+    /**
+     * Get products by collection handle.
+     * 
+     * @param string $collection_handle
+     * @param int $limit
+     * @param string $sortKey
+     * @param bool $reverse
+     * @return array|WP_Error
+     */
+    public static function get_collection_products($collection_handle, $limit = 8, $sortKey = 'BEST_SELLING', $reverse = false) {
         $limit = intval($limit);
         
+        $variables = [
+            'first' => $limit,
+            'sortKey' => $sortKey,
+            'reverse' => $reverse
+        ];
+
+        // Log for debugging
+        file_put_contents(WP_CONTENT_DIR . '/breakdance_shopify_debug.log', date('Y-m-d H:i:s') . " - Vars: " . json_encode($variables) . "\n", FILE_APPEND);
+
         // If handle is 'all' or empty, fetch latest products
         if (empty($collection_handle) || $collection_handle === 'all') {
-            $query = "{
-                products(first: $limit) {
+            
+            // Map Invalid Sort Keys for Product Connection (ProductSortKeys)
+            // ProductSortKeys supports: TITLE, PRODUCT_TYPE, VENDOR, UPDATED_AT, CREATED_AT, ID, RELEVANCE.
+            // It does NOT support: BEST_SELLING, MANUAL, COLLECTION_DEFAULT, PRICE (in some versions), CREATED (use CREATED_AT).
+            
+            if (in_array($variables['sortKey'], ['BEST_SELLING', 'MANUAL', 'PRICE', 'COLLECTION_DEFAULT', 'CREATED'])) {
+                $variables['sortKey'] = 'CREATED_AT'; // Safe fallback
+            }
+
+            $query = '
+            query GetProducts($first: Int!, $sortKey: ProductSortKeys, $reverse: Boolean) {
+                products(first: $first, sortKey: $sortKey, reverse: $reverse) {
                     edges {
                         node {
                             id
@@ -413,12 +441,24 @@ class ShopifyApi {
                         }
                     }
                 }
-            }";
+            }';
+            
             $path = ['products', 'edges'];
         } else {
-             $query = "{
-                collectionByHandle(handle: \"$collection_handle\") {
-                    products(first: $limit) {
+            $variables['handle'] = $collection_handle;
+            
+            // Map keys for Collection Connection (ProductCollectionSortKeys)
+            // Collection supports: CREATED, BEST_SELLING, MANUAL, etc.
+            // It uses CREATED instead of CREATED_AT.
+            
+            if ($variables['sortKey'] === 'CREATED_AT') {
+                $variables['sortKey'] = 'CREATED';
+            }
+
+            $query = '
+            query GetCollectionProducts($handle: String!, $first: Int!, $sortKey: ProductCollectionSortKeys, $reverse: Boolean) {
+                collection(handle: $handle) {
+                    products(first: $first, sortKey: $sortKey, reverse: $reverse) {
                         edges {
                             node {
                                 id
@@ -445,11 +485,257 @@ class ShopifyApi {
                         }
                     }
                 }
-            }";
-            $path = ['collectionByHandle', 'products', 'edges'];
+            }';
+            $path = ['collection', 'products', 'edges'];
         }
 
-        $cache_key = 'shopify_collection_' . md5($collection_handle . '_' . $limit);
+        // Use v2 cache key to invalidate old data
+        $cache_key = 'shopify_collection_v2_' . md5($collection_handle . '_' . $limit . '_' . $sortKey . '_' . $reverse);
+        $cached = get_transient($cache_key);
+        if ($cached) return $cached;
+
+        $init = self::init();
+        if (is_wp_error($init)) return $init;
+
+        // Use variables in execution
+        $result = Shopify_Wp_GraphQL::execute_query($query, $variables);
+        if (is_wp_error($result)) return $result;
+        
+        $flattened = [];
+        $root = $result['data'] ?? [];
+        foreach($path as $key) {
+             $root = $root[$key] ?? [];
+        }
+        
+        if (empty($root)) {
+             // Fallback to sample data if in builder OR if just empty to show *something* 
+             // But for empty "all products", we might just want to return empty.
+             // Sticking to sample for builder for now.
+             if (isset($_GET['breakdance_builder'])) {
+                return self::get_sample_products($limit);
+             }
+             return [];
+        }
+
+        foreach ($root as $edge) {
+            $flattened[] = $edge['node'];
+        }
+        
+        if (empty($flattened) && isset($_GET['breakdance_builder'])) {
+             return self::get_sample_products($limit);
+        }
+
+        set_transient($cache_key, $flattened, HOUR_IN_SECONDS);
+        return $flattened;
+    }
+
+    public static function get_sample_products($limit = 8) {
+        $products = [];
+        for ($i = 1; $i <= $limit; $i++) {
+            $products[] = [
+                'id' => 'sample-product-' . $i,
+                'title' => 'Sample Product ' . $i,
+                'handle' => 'sample-product-' . $i,
+                'description' => 'This is a sample product description.',
+                'descriptionHtml' => '<p>This is a sample product description.</p>',
+                'onlineStoreUrl' => '#',
+                'featuredImage' => [
+                    'url' => 'https://via.placeholder.com/600?text=Product+' . $i,
+                    'altText' => 'Sample Product ' . $i
+                ],
+                'priceRange' => [
+                    'minVariantPrice' => ['amount' => '19.99', 'currencyCode' => 'USD'],
+                    'maxVariantPrice' => ['amount' => '29.99', 'currencyCode' => 'USD'],
+                ],
+                'variants' => [
+                    'edges' => [
+                       ['node' => ['price' => ['amount' => '19.99', 'currencyCode' => 'USD']]]
+                    ]
+                ]
+            ];
+        }
+        return $products;
+    }
+
+    /**
+     * Get list of collections formatted for Breakdance dropdown options.
+     * Caches results in a transient for 1 hour.
+     * 
+     * @return array
+     */
+    public static function get_collections_options() {
+        $options = get_transient('breakdance_shopify_collection_options');
+
+        if ($options !== false) {
+            return $options;
+        }
+
+        $init = self::init();
+        if (is_wp_error($init)) {
+            return [['value' => '', 'text' => 'Error: Check Credentials']];
+        }
+
+        $query = '
+        query GetCollectionsList {
+            collections(first: 50) {
+                edges {
+                    node {
+                        handle
+                        title
+                    }
+                }
+            }
+        }';
+
+        $result = Shopify_Wp_GraphQL::execute_query($query);
+        
+        $items = [['value' => '', 'text' => 'All Products']];
+
+        if (!is_wp_error($result) && !isset($result['errors']) && !empty($result['data']['collections']['edges'])) {
+            foreach ($result['data']['collections']['edges'] as $edge) {
+                $items[] = [
+                    'value' => $edge['node']['handle'],
+                    'text'  => $edge['node']['title']
+                ];
+            }
+        } else {
+             // If failed, maybe we are in builder or dev mode without API?
+             // Add samples if needed, or just error.
+             if (empty($result['data']['collections']['edges'])) {
+                 // return sample options for builder if no real data
+                 if (isset($_GET['breakdance_builder'])) {
+                      $items[] = ['value' => 'sample-collection-1', 'text' => 'Sample Collection 1'];
+                      $items[] = ['value' => 'sample-collection-2', 'text' => 'Sample Collection 2'];
+                 }
+             }
+        }
+
+        set_transient('breakdance_shopify_collection_options', $items, HOUR_IN_SECONDS);
+
+        return $items;
+    }
+
+    /**
+     * Get a list of collections.
+     * 
+     * @param int $limit
+     * @return array|WP_Error
+     */
+    public static function get_collections($limit = 8) {
+        $limit = intval($limit);
+        
+        // Debug Log
+        file_put_contents(WP_CONTENT_DIR . '/shopify_debug.log', date('Y-m-d H:i:s') . " - get_collections called. GET keys: " . implode(',', array_keys($_GET)) . "\n", FILE_APPEND);
+        
+        $query = "{
+            collections(first: $limit) {
+                edges {
+                    node {
+                        id
+                        title
+                        handle
+                        description
+                        descriptionHtml
+                        image { url altText }
+                    }
+                }
+            }
+        }";
+
+        $cache_key = 'shopify_collections_' . $limit;
+        $cached = get_transient($cache_key);
+        if ($cached) return $cached;
+
+        if (isset($_GET['breakdance_builder'])) {
+            // Check if we have cached or real data first? 
+        }
+
+        $init = self::init();
+        if (is_wp_error($init)) {
+            // Fallback for ANY error if no data (likely dev/builder mode or broken config)
+            // Ideally strictly only in builder, but if builder context is missing, we need to show something.
+            // Using loose check: if result is error, return sample data.
+             return self::get_sample_collections($limit);
+        }
+
+        $result = Shopify_Wp_GraphQL::execute_query($query);
+        
+        if (is_wp_error($result)) {
+            return self::get_sample_collections($limit);
+        }
+        
+        $collections = [];
+        if (!empty($result['data']['collections']['edges'])) {
+            foreach ($result['data']['collections']['edges'] as $edge) {
+                $collections[] = $edge['node'];
+            }
+        }
+        
+        if (empty($collections)) {
+            return self::get_sample_collections($limit);
+        }
+        
+        set_transient($cache_key, $collections, HOUR_IN_SECONDS);
+        return $collections;
+    }
+
+    /**
+     * Get sample collections for builder.
+     */
+    public static function get_sample_collections($limit = 3) {
+        $collections = [];
+        for ($i = 1; $i <= $limit; $i++) {
+            $collections[] = [
+                'id' => 'sample-id-' . $i,
+                'title' => 'Sample Collection ' . $i,
+                'handle' => 'sample-collection-' . $i,
+                'description' => 'This is a sample collection description.',
+                'descriptionHtml' => '<p>This is a sample collection description.</p>',
+                'image' => [
+                    'url' => 'https://via.placeholder.com/600?text=Collection+' . $i,
+                    'altText' => 'Sample Collection ' . $i
+                ]
+            ];
+        }
+        return $collections;
+    }
+
+    /**
+     * Get single collection by handle.
+     * 
+     * @param string $handle
+     * @return array|WP_Error
+     */
+    public static function get_collection($handle) {
+        if (empty($handle)) return new WP_Error('invalid_handle', 'Handle is empty');
+
+        if (strpos($handle, 'sample-collection-') === 0) {
+             $id = str_replace('sample-collection-', '', $handle);
+             return [
+                 'id' => 'sample-id-' . $id,
+                 'title' => 'Sample Collection ' . $id,
+                 'handle' => $handle,
+                 'description' => 'This is a sample collection description.',
+                 'descriptionHtml' => '<p>This is a sample collection description.</p>',
+                 'image' => [
+                     'url' => 'https://via.placeholder.com/600?text=Collection+' . $id,
+                     'altText' => 'Sample Collection ' . $id
+                 ]
+             ];
+        }
+
+        $query = "{
+            collectionByHandle(handle: \"$handle\") {
+                id
+                title
+                handle
+                description
+                descriptionHtml
+                image { url altText }
+            }
+        }";
+
+        $cache_key = 'shopify_collection_' . md5($handle);
         $cached = get_transient($cache_key);
         if ($cached) return $cached;
 
@@ -459,20 +745,109 @@ class ShopifyApi {
         $result = Shopify_Wp_GraphQL::execute_query($query);
         if (is_wp_error($result)) return $result;
         
-        $flattened = [];
-        $root = $result['data'] ?? [];
-        foreach($path as $key) {
-             $root = $root[$key] ?? [];
+        $collection = $result['data']['collectionByHandle'] ?? null;
+        if ($collection) {
+            set_transient($cache_key, $collection, HOUR_IN_SECONDS);
         }
         
-        if (empty($root)) return [];
+        return $collection;
+    }
 
-        foreach ($root as $edge) {
-            $flattened[] = $edge['node'];
+    // --- Collection Context Management ---
+
+    public static $current_collection_context_handle = null;
+    public static $collection_context_stack = [];
+
+    public static function push_collection_context($handle) {
+        if ($handle) {
+            array_push(self::$collection_context_stack, $handle);
+            self::$current_collection_context_handle = $handle;
+        }
+    }
+
+    public static function pop_collection_context() {
+        array_pop(self::$collection_context_stack);
+        self::$current_collection_context_handle = end(self::$collection_context_stack) ?: null;
+    }
+
+    public static function get_active_collection_handle() {
+        if (!empty(self::$collection_context_stack)) {
+            return end(self::$collection_context_stack);
+        }
+        return self::$current_collection_context_handle;
+    }
+
+    /**
+     * Get the current collection context.
+     * 
+     * @param string|null $manual_handle
+     * @return array|WP_Error|null
+     */
+    public static function get_current_collection($manual_handle = null) {
+        // 0. Manual Override
+        if (!empty($manual_handle)) {
+            return self::get_collection($manual_handle);
         }
 
-        set_transient($cache_key, $flattened, HOUR_IN_SECONDS);
-        return $flattened;
+        // 1. Stack Context
+        $stack_handle = self::get_active_collection_handle();
+        if ($stack_handle) {
+            return self::get_collection($stack_handle);
+        }
+
+        // 2. URL Context
+        $handle = get_query_var('shopify_collection_handle');
+        if (empty($handle) && isset($_GET['collection_handle'])) {
+            $handle = sanitize_text_field($_GET['collection_handle']);
+        }
+
+        if ($handle) {
+             return self::get_collection($handle);
+        }
+        
+        // 3. Fake data for builder
+        if (isset($_GET['breakdance_builder'])) {
+             return [
+                'title' => 'Sample Collection',
+                'handle' => 'sample-collection',
+                'description' => 'This is a sample collection description.',
+                'descriptionHtml' => '<p>This is a sample collection description.</p>',
+                'image' => [
+                    'url' => 'https://via.placeholder.com/600',
+                    'altText' => 'Sample Collection Image'
+                ]
+            ];
+        }
+
+        return new WP_Error('no_context', 'No collection context found');
+    }
+
+    // --- Collection Helper Functions ---
+
+    public static function get_collection_title($manual_handle = null) {
+        $collection = self::get_current_collection($manual_handle);
+        if (is_wp_error($collection)) return '';
+        return $collection['title'] ?? '';
+    }
+
+    public static function get_collection_description($manual_handle = null) {
+        $collection = self::get_current_collection($manual_handle);
+        if (is_wp_error($collection)) return '';
+        return $collection['descriptionHtml'] ?? $collection['description'] ?? '';
+    }
+
+    public static function get_collection_image_src($manual_handle = null) {
+        $collection = self::get_current_collection($manual_handle);
+        if (is_wp_error($collection)) return '';
+        if (empty($collection['image'])) return '';
+        return $collection['image']['url'] ?? '';
+    }
+
+    public static function get_collection_image_alt($manual_handle = null) {
+        $collection = self::get_current_collection($manual_handle);
+        if (is_wp_error($collection)) return '';
+        if (empty($collection['image'])) return '';
+        return $collection['image']['altText'] ?? $collection['title'] ?? '';
     }
 
     /**

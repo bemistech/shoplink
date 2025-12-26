@@ -5,6 +5,7 @@ namespace BreakdanceShopify;
 use function Breakdance\Elements\c;
 use function Breakdance\Elements\PresetSections\getPresetSection;
 
+
 \Breakdance\ElementStudio\registerElementForEditing(
     "BreakdanceShopify\\ShopifyPage",
     \Breakdance\Util\getdirectoryPathRelativeToPluginFolder(__DIR__)
@@ -14,7 +15,7 @@ class ShopifyPage extends \Breakdance\Elements\Element
 {
     static function uiIcon()
     {
-        return 'FileIcon';
+        return 'SquareIcon';
     }
 
     static function tag()
@@ -69,19 +70,7 @@ class ShopifyPage extends \Breakdance\Elements\Element
 
     static function defaultProperties()
     {
-        return [
-            'content' => [
-                'query' => [
-                    'handle' => 'about-us'
-                ]
-            ],
-            'design' => [
-                'typography' => [
-                    'font_family' => '',
-                    'font_size' => ''
-                ]
-            ]
-        ];
+        return ['content' => ['query' => ['handle' => 'about-us']], 'design' => ['typography' => ['font_family' => '', 'font_size' => '']]];
     }
 
     static function defaultChildren()
@@ -91,50 +80,46 @@ class ShopifyPage extends \Breakdance\Elements\Element
 
     static function cssTemplate()
     {
-        return file_get_contents(__DIR__ . '/css.twig');
+        $template = file_get_contents(__DIR__ . '/css.twig');
+        return $template;
     }
 
     static function designControls()
     {
-        return [
-             getPresetSection(
-                  "EssentialElements\\typography",
-                  "Typography",
-                  "typography",
-                   ['type' => 'popout']
-             ),
-             getPresetSection(
-                  "EssentialElements\\spacing_padding_all",
-                  "Padding",
-                  "padding",
-                   ['type' => 'popout']
-             )
-        ];
+        return [getPresetSection(
+      "EssentialElements\\typography",
+      "Typography",
+      "typography",
+       ['type' => 'popout']
+     ), getPresetSection(
+      "EssentialElements\\spacing_padding_all",
+      "Padding",
+      "padding",
+       ['type' => 'popout']
+     )];
     }
 
     static function contentControls()
     {
-        return [
-            c(
-                "query",
-                "Query",
-                [
-                    c(
-                        "handle",
-                        "Page Handle",
-                        [],
-                        ['type' => 'text', 'layout' => 'vertical', 'placeholder' => 'about-us'],
-                        false,
-                        false,
-                        []
-                    )
-                ],
-                ['type' => 'section'],
-                false,
-                false,
-                []
-            )
-        ];
+        return [c(
+        "query",
+        "Query",
+        [c(
+        "handle",
+        "Page Handle",
+        [],
+        ['type' => 'text', 'layout' => 'vertical', 'placeholder' => 'about-us'],
+        false,
+        false,
+        [],
+        
+      )],
+        ['type' => 'section'],
+        false,
+        false,
+        [],
+        
+      )];
     }
 
     static function settingsControls()
@@ -187,6 +172,7 @@ class ShopifyPage extends \Breakdance\Elements\Element
         return ['breakdance'];
     }
 
+
     static function order()
     {
         return 0;
@@ -194,7 +180,7 @@ class ShopifyPage extends \Breakdance\Elements\Element
 
     static function dynamicPropertyPaths()
     {
-        return [];
+        return false;
     }
 
     static function additionalClasses()
@@ -209,13 +195,11 @@ class ShopifyPage extends \Breakdance\Elements\Element
 
     static function propertyPathsToWhitelistInFlatProps()
     {
-        return [];
+        return false;
     }
 
     static function propertyPathsToSsrElementWhenValueChanges()
     {
-        return [
-            'content.query.handle'
-        ];
+        return ['content.query.handle'];
     }
 }

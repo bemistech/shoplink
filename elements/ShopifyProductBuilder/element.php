@@ -35,7 +35,7 @@ class ShopifyProductBuilder extends \Breakdance\Elements\Element
 
     static function name()
     {
-        return 'Product Builder';
+        return 'Shopify Product';
     }
 
     static function className()
@@ -75,33 +75,7 @@ class ShopifyProductBuilder extends \Breakdance\Elements\Element
 
     static function defaultChildren()
     {
-        return [
-            [
-                'slug' => 'EssentialElements\\Columns',
-                'children' => [
-                    '0' => [
-                        'slug' => 'EssentialElements\\Column',
-                        'children' => [
-                            '0' => ['slug' => 'BreakdanceShopify\\ShopifyProductGallery']
-                        ],
-                        'defaultProperties' => ['design' => ['size' => ['width' => ['number' => 50, 'unit' => '%', 'style' => '50%']]]]
-                    ],
-                    '1' => [
-                        'slug' => 'EssentialElements\\Column',
-                        'children' => [
-                            '0' => ['slug' => 'BreakdanceShopify\\ShopifyProductTitle'],
-                            '1' => ['slug' => 'BreakdanceShopify\\ShopifyProductPrice'],
-                            '2' => ['slug' => 'BreakdanceShopify\\ShopifyVariantSelector'],
-                            '3' => ['slug' => 'BreakdanceShopify\\ShopifyQuantityInput'],
-                            '4' => ['slug' => 'BreakdanceShopify\\ShopifyAddToCart'],
-                            '5' => ['slug' => 'BreakdanceShopify\\ShopifyBuyNowButton'],
-                            '6' => ['slug' => 'BreakdanceShopify\\ShopifyProductDescription']
-                        ],
-                        'defaultProperties' => ['design' => ['size' => ['width' => ['number' => 50, 'unit' => '%', 'style' => '50%']]]]
-                    ]
-                ]
-            ]
-        ];
+        return [['slug' => 'EssentialElements\Columns', 'children' => [['slug' => 'EssentialElements\Column', 'children' => [['slug' => 'BreakdanceShopify\ShopifyProductGallery']], 'defaultProperties' => ['design' => ['size' => ['width' => ['number' => 50, 'unit' => '%', 'style' => '50%']]]]], ['slug' => 'EssentialElements\Column', 'children' => [['slug' => 'BreakdanceShopify\ShopifyProductTitle'], ['slug' => 'BreakdanceShopify\ShopifyProductPrice'], ['slug' => 'BreakdanceShopify\ShopifyVariantSelector'], ['slug' => 'BreakdanceShopify\ShopifyQuantityInput'], ['slug' => 'BreakdanceShopify\ShopifyAddToCart'], ['slug' => 'BreakdanceShopify\ShopifyBuyNowButton'], ['slug' => 'BreakdanceShopify\ShopifyProductDescription']], 'defaultProperties' => ['design' => ['size' => ['width' => ['number' => 50, 'unit' => '%', 'style' => '50%']]]]]]]];
     }
 
     static function cssTemplate()
