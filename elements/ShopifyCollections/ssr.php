@@ -3,7 +3,12 @@
 use BreakdanceShopify\ShopifyApi;
 
 // Defaults
-$limit = $propertiesData['content']['query']['limit'] ?? 8;
+$limitRaw = $propertiesData['content']['query']['limit'] ?? 8;
+if (is_array($limitRaw)) {
+    $limitRaw = $limitRaw['breakpoint_base'] ?? array_values($limitRaw)[0] ?? 8;
+}
+$limit = intval($limitRaw);
+if ($limit < 1) $limit = 8;
 
 // Output
 $layout = $propertiesData['design']['list']['layout'] ?? 'grid';
@@ -14,11 +19,21 @@ $align = $propertiesData['design']['list']['align'] ?? 'left';
 // Fetch collections
 $collections = ShopifyApi::get_collections($limit);
 
+echo '<pre style="background:#eee; padding:10px; border:1px solid #ccc; z-index:9999; position:relative;">';
+echo "Limit: " . $limit . "\n";
+echo "Count: " . (is_array($collections) ? count($collections) : 'Not Array') . "\n";
+echo "Is WP Error: " . (is_wp_error($collections) ? 'Yes: ' . $collections->get_error_message() : 'No') . "\n";
+echo '</pre>';
+
 if (is_wp_error($collections)) {
+    if (isset($_GET['breakdance_builder'])) {
+        echo '<div class="bde-shopify-collections-error">Shopify Error: ' . esc_html($collections->get_error_message()) . '</div>';
+    }
     return;
 }
 
 if (empty($collections)) {
+    echo '<div class="bde-shopify-collections-empty">No collections found.</div>';
     return;
 }
 
@@ -38,6 +53,19 @@ foreach ($standardElements as $type) {
     }
 }
 
+// Custom Areas (Global Blocks)
+$customAreas = $propertiesData['design']['elements']['custom_areas']['areas'] ?? [];
+foreach ($customAreas as $area) {
+     $gbId = $area['global_block'] ?? 0;
+     if ($gbId) {
+         $components[] = [
+             'type' => 'global_block',
+             'order' => intval($area['order'] ?? 0),
+             'id' => $gbId
+         ];
+     }
+}
+
 // Sort by Order
 usort($components, function($a, $b) {
     return $a['order'] <=> $b['order'];
@@ -53,15 +81,10 @@ if ($layout === 'slider') {
     foreach ($collections as $collection) {
         ShopifyApi::push_collection_context($collection['handle']);
         
-        $title = ShopifyApi::get_collection_title();
-        $description = ShopifyApi::get_collection_description();
-        $image_url = ShopifyApi::get_collection_image_src();
-        $image_alt = ShopifyApi::get_collection_image_alt();
-        // Assuming we want to link to collection URL. 
-        // Note: URL structure depends on rewrites. For now assuming /collections/handle or using a store URL if available.
-        // Actually, ShopifyApi doesn't have get_collection_url yet, but standard structure is predictable.
-        // Or we can rely on Global Settings for rewrite structure.
-        // We'll mimic product link behavior but for collections.
+        $title = $collection['title'];
+        $description = $collection['descriptionHtml'] ?? $collection['description'] ?? '';
+        $image_url = $collection['image']['url'] ?? '';
+        $image_alt = $collection['image']['altText'] ?? $title;
         $url = '/collections/' . $collection['handle']; 
 
         echo '<div class="swiper-slide bde-shopify-collection-card">';
@@ -83,8 +106,10 @@ if ($layout === 'slider') {
                     echo '</a>';
                     break;
                 case 'description':
-                    // Truncate description or just show summary? Showing regular description for now.
                     echo '<div class="bde-shopify-collection-description">' . wp_kses_post($description) . '</div>';
+                    break;
+                case 'global_block':
+                    echo \Breakdance\Render\renderGlobalBlock($component['id']);
                     break;
             }
         }
@@ -110,10 +135,10 @@ if ($layout === 'slider') {
     foreach ($collections as $collection) {
         ShopifyApi::push_collection_context($collection['handle']);
         
-        $title = ShopifyApi::get_collection_title();
-        $description = ShopifyApi::get_collection_description();
-        $image_url = ShopifyApi::get_collection_image_src();
-        $image_alt = ShopifyApi::get_collection_image_alt();
+        $title = $collection['title'];
+        $description = $collection['descriptionHtml'] ?? $collection['description'] ?? '';
+        $image_url = $collection['image']['url'] ?? '';
+        $image_alt = $collection['image']['altText'] ?? $title;
         $url = '/collections/' . $collection['handle'];
         
         echo '<div class="bde-shopify-collection-card">';
@@ -136,6 +161,9 @@ if ($layout === 'slider') {
                     break;
                  case 'description':
                     echo '<div class="bde-shopify-collection-description">' . wp_kses_post($description) . '</div>';
+                    break;
+                 case 'global_block':
+                    echo \Breakdance\Render\renderGlobalBlock($component['id']);
                     break;
             }
         }

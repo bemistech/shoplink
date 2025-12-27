@@ -1,0 +1,60 @@
+/* Shopify Filters CSS */
+.bde-shopify-filters {
+    width: 100%;
+}
+
+.bde-shopify-filters-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-end;
+    /* Align inputs and button */
+    width: 100%;
+}
+
+.bde-shopify-filter-widget {
+    margin-bottom: 0;
+    /* Let flex gap handle spacing */
+    min-width: 150px;
+}
+
+.bde-shopify-filter-label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+/* Inputs and Selects: Default standard sizing but overrideable */
+.bde-shopify-filters input[type="text"],
+.bde-shopify-filters input[type="number"],
+.bde-shopify-filters select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.bde-shopify-filter-price-range {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.bde-shopify-filter-tags {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.bde-shopify-filter-tag {
+    cursor: pointer;
+}
+
+/* Button: Basic defaults */
+.bde-shopify-filter-clear {
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    /* Breakdance button preset should handle the rest */
+}

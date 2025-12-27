@@ -38,11 +38,12 @@ function breakdance_shopify_register_elements() {
     require_once BREAKDANCE_SHOPIFY_PATH . 'elements/ShopifyBuyNowButton/element.php';
     // require_once BREAKDANCE_SHOPIFY_PATH . 'elements/ShopifyProductList/element.php'; // Deleted
     // require_once BREAKDANCE_SHOPIFY_PATH . 'elements/ShopifyRepeater/element.php'; // Deleted
-    // require_once BREAKDANCE_SHOPIFY_PATH . 'elements/ShopifyCollections/element.php';
+    require_once BREAKDANCE_SHOPIFY_PATH . 'elements/ShopifyCollections/element.php';
     // require_once BREAKDANCE_SHOPIFY_PATH . 'elements/ShopifyCollectionTitle/element.php';
     // require_once BREAKDANCE_SHOPIFY_PATH . 'elements/ShopifyCollectionImage/element.php';
     // require_once BREAKDANCE_SHOPIFY_PATH . 'elements/ShopifyCollectionDescription/element.php';
     require_once BREAKDANCE_SHOPIFY_PATH . 'elements/ShopifyPage/element.php';
+    require_once BREAKDANCE_SHOPIFY_PATH . 'elements/ShopifyFilters/element.php';
 }
 add_action( 'breakdance_loaded', 'breakdance_shopify_register_elements' );
 

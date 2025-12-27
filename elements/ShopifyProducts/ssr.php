@@ -27,8 +27,34 @@ $columns = $propertiesData['design']['list']['columns'] ?? 3;
 $gap = $propertiesData['design']['list']['gap'] ?? 20;
 $align = $propertiesData['design']['list']['align'] ?? 'left';
 
+// URL Parameter Overrides
+if (isset($_GET['collection']) && !empty($_GET['collection'])) {
+    $collection = sanitize_text_field($_GET['collection']);
+}
+if (isset($_GET['sort_key']) && !empty($_GET['sort_key'])) {
+    $sortKey = sanitize_text_field($_GET['sort_key']);
+}
+if (isset($_GET['reverse'])) {
+    $reverse = filter_var($_GET['reverse'], FILTER_VALIDATE_BOOLEAN);
+}
+
+// Prepare Arguments
+$args = [
+    'limit' => $limit,
+    'collection' => $collection,
+    'sort_key' => $sortKey,
+    'reverse' => $reverse,
+    'min_price' => $_GET['min_price'] ?? '',
+    'max_price' => $_GET['max_price'] ?? '',
+    'tags' => (isset($_GET['tags']) && is_array($_GET['tags'])) 
+        ? $_GET['tags'] 
+        : (isset($_GET['tags']) ? array_filter(explode(',', $_GET['tags'])) : []),
+    'product_type' => $_GET['product_type'] ?? '',
+    'q' => $_GET['q'] ?? ''
+];
+
 // Fetch products
-$products = ShopifyApi::get_collection_products($collection, $limit, $sortKey, $reverse);
+$products = ShopifyApi::get_products_filtered($args);
 
 if (is_wp_error($products)) {
     file_put_contents(WP_CONTENT_DIR . '/breakdance_debug.log', date('Y-m-d H:i:s') . ' - Error: ' . $products->get_error_message() . "\n", FILE_APPEND);
@@ -91,6 +117,15 @@ if ($layout === 'slider') {
         $title = ShopifyApi::get_product_title();
         $handle = ShopifyApi::get_product_handle();
         $priceDisplay = ShopifyApi::get_product_price();
+        // Handle Price Range
+        if (isset($product['priceRange'])) {
+            $min = $product['priceRange']['minVariantPrice']['amount'];
+            $max = $product['priceRange']['maxVariantPrice']['amount'];
+            $currency = $product['priceRange']['minVariantPrice']['currencyCode'];
+            if ($min != $max) {
+                 $priceDisplay = $currency . ' ' . $min . ' - ' . $currency . ' ' . $max;
+            }
+        }
         $image_url = ShopifyApi::get_product_image_src();
         $image_alt = ShopifyApi::get_product_image_alt();
         $url = ShopifyApi::get_product_url();
@@ -149,6 +184,15 @@ if ($layout === 'slider') {
         $title = ShopifyApi::get_product_title();
         $handle = ShopifyApi::get_product_handle();
         $priceDisplay = ShopifyApi::get_product_price();
+        // Handle Price Range
+        if (isset($product['priceRange'])) {
+            $min = $product['priceRange']['minVariantPrice']['amount'];
+            $max = $product['priceRange']['maxVariantPrice']['amount'];
+            $currency = $product['priceRange']['minVariantPrice']['currencyCode'];
+            if ($min != $max) {
+                 $priceDisplay = $currency . ' ' . $min . ' - ' . $currency . ' ' . $max;
+            }
+        }
         $image_url = ShopifyApi::get_product_image_src();
         $image_alt = ShopifyApi::get_product_image_alt();
         $url = ShopifyApi::get_product_url();

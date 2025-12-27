@@ -616,6 +616,335 @@ class ShopifyApi {
     }
 
     /**
+     * Get Shop Product Types for filtering.
+     * @return array
+     */
+    public static function get_product_types() {
+        // DEBUG: Force clear transient
+        delete_transient('breakdance_shopify_product_types');
+
+        $types = get_transient('breakdance_shopify_product_types');
+        if ($types !== false) return $types;
+
+        $init = self::init();
+        if (is_wp_error($init)) return [];
+
+        // Strategy: Fetch products and extract unique product types
+        // Shop.productTypes can be empty depending on store configuration/indexing.
+        $query = '{
+            products(first: 250) {
+                edges {
+                    node {
+                        productType
+                    }
+                }
+            }
+        }';
+
+        $result = Shopify_Wp_GraphQL::execute_query($query);
+        $items = [];
+        $unique_types = [];
+
+        if (!is_wp_error($result) && !empty($result['data']['products']['edges'])) {
+            foreach ($result['data']['products']['edges'] as $edge) {
+                $type = $edge['node']['productType'] ?? '';
+                if (!empty($type) && !in_array($type, $unique_types)) {
+                    $unique_types[] = $type;
+                    $items[] = $type;
+                }
+            }
+        }
+        
+        sort($items);
+        
+        // DEBUG: Log Types
+        file_put_contents(WP_CONTENT_DIR . '/shopify_debug.log', date('Y-m-d H:i:s') . " - Product Types (Aggregated): " . print_r($items, true) . "\n", FILE_APPEND);
+
+        set_transient('breakdance_shopify_product_types', $items, HOUR_IN_SECONDS);
+        return $items;
+    }
+
+    /**
+     * Get a list of collections.
+     * 
+     * @param int $limit
+     * @return array
+     */
+    public static function get_shop_tags() {
+        $tags = get_transient('breakdance_shopify_shop_tags');
+        if ($tags !== false) return $tags;
+
+        $init = self::init();
+        if (is_wp_error($init)) return [];
+
+        $query = '{
+            shop {
+                productTags(first: 100) {
+                    edges {
+                        node
+                    }
+                }
+            }
+        }';
+
+        $result = Shopify_Wp_GraphQL::execute_query($query);
+        $items = [];
+
+        if (!is_wp_error($result) && !empty($result['data']['shop']['productTags']['edges'])) {
+            foreach ($result['data']['shop']['productTags']['edges'] as $edge) {
+                $items[] = $edge['node'];
+            }
+        } else {
+             // Sample tags for builder
+             if (isset($_GET['breakdance_builder'])) {
+                $items = ['New', 'Sale', 'Mens', 'Womens', 'Accessories'];
+             }
+        }
+
+        set_transient('breakdance_shopify_shop_tags', $items, HOUR_IN_SECONDS);
+        return $items;
+    }
+
+    /**
+     * Get products with advanced filtering.
+     * @return array|WP_Error
+     */
+    public static function get_products_filtered($args = []) {
+        $defaults = [
+            'limit' => 8,
+            'collection' => '', // Renamed from collection_handle
+            'sort_key' => 'BEST_SELLING',
+            'reverse' => false,
+            'min_price' => '',
+            'max_price' => '',
+            'tags' => [], // array of strings
+            'product_type' => '',
+            'vendor' => '',
+            'q' => '' // search term
+        ];
+
+        $args = wp_parse_args($args, $defaults);
+        $limit = intval($args['limit']);
+
+        // DEBUG: Log Args
+        file_put_contents(WP_CONTENT_DIR . '/shopify_filter_debug.log', date('Y-m-d H:i:s') . " - Args: " . print_r($args, true) . "\n", FILE_APPEND);
+
+        // Build Query String
+        $queryParts = [];
+
+        // 1. Search Term
+        if (!empty($args['q'])) {
+            $queryParts[] = $args['q'];
+        }
+
+        // 2. Tags
+        // Tags are ANDed automatically in query syntax "tag:a AND tag:b"
+        if (!empty($args['tags']) && is_array($args['tags'])) {
+            foreach ($args['tags'] as $tag) {
+                $queryParts[] = 'tag:"' . $tag . '"';
+            }
+        }
+
+        // 3. Product Type
+        if (!empty($args['product_type'])) {
+            $queryParts[] = 'product_type:"' . $args['product_type'] . '"';
+        }
+
+        // 4. Vendor
+        if (!empty($args['vendor'])) {
+            $queryParts[] = 'vendor:"' . $args['vendor'] . '"';
+        }
+
+        // 5. Price
+        // We use variants.price to be explicit, as 'price' shortcut can vary.
+        if (is_numeric($args['min_price'])) {
+            $queryParts[] = 'variants.price:>=' . $args['min_price'];
+        }
+        if (is_numeric($args['max_price'])) {
+            $queryParts[] = 'variants.price:<=' . $args['max_price'];
+        }
+
+        // 6. Availability
+        $queryParts[] = 'available_for_sale:true';
+
+        $queryString = implode(' AND ', $queryParts);
+        if (empty($queryString)) {
+            $queryString = null;
+        }
+
+        // DEBUG: Log Query String
+        file_put_contents(WP_CONTENT_DIR . '/shopify_filter_debug.log', date('Y-m-d H:i:s') . " - Query String: " . $queryString . "\n", FILE_APPEND);
+
+        // Variables common
+        $variables = [
+            'first' => $limit,
+            'sortKey' => $args['sort_key'],
+            'reverse' => $args['reverse'],
+        ];
+
+        // Map Valid Sort Key Shortcuts
+        if (in_array($variables['sortKey'], ['MANUAL', 'COLLECTION_DEFAULT', 'CREATED'])) {
+             $variables['sortKey'] = 'CREATED_AT'; 
+        }
+
+        // Decide Query Strategy based on Collection Handle
+        if (!empty($args['collection'])) {
+            // Strategy A: Collection Context
+            // We use the 'filters' argument (available in 2024-04+) or 'query' if supported. 
+            // Note: 'query' on collection.products is often not supported or limited.
+            // 'filters' input is robust.
+            
+            $filters = [];
+            // Price
+            if (is_numeric($args['min_price']) || is_numeric($args['max_price'])) {
+                $priceFilter = ['price' => []];
+                if (is_numeric($args['min_price'])) $priceFilter['price']['min'] = (float)$args['min_price'];
+                if (is_numeric($args['max_price'])) $priceFilter['price']['max'] = (float)$args['max_price'];
+                $filters[] = $priceFilter;
+            }
+            // Tags (Note: 'filters' input uses 'tag' or 'productType' etc)
+            // Available filters: available, price, productType, tag, vendor, variantOption.
+            if (!empty($args['tags']) && is_array($args['tags'])) {
+                 foreach ($args['tags'] as $tag) {
+                     $filters[] = ['tag' => $tag];
+                 }
+            }
+            // Product Type
+            if (!empty($args['product_type'])) {
+                $filters[] = ['productType' => $args['product_type']];
+            }
+            // Vendor
+            if (!empty($args['vendor'])) {
+                $filters[] = ['productVendor' => $args['vendor']];
+            }
+            // Availability
+            $filters[] = ['available' => true];
+
+            $variables['handle'] = $args['collection'];
+            $variables['filters'] = $filters;
+
+            // DEBUG: Collection Strategy
+            file_put_contents(WP_CONTENT_DIR . '/shopify_filter_debug.log', date('Y-m-d H:i:s') . " - Strategy A (Collection): Handle=" . $variables['handle'] . " Filters=" . json_encode($filters) . "\n", FILE_APPEND);
+
+            // Sort Key for Collection is ProductCollectionSortKeys
+            // Valid: TITLE, PRICE, BEST_SELLING, CREATED, ID, MANUAL, COLLECTION_DEFAULT, RELEVANCE.
+            // Note: CREATED_AT is 'CREATED' in Collection context.
+            if ($variables['sortKey'] === 'CREATED_AT') $variables['sortKey'] = 'CREATED';
+
+            $query = '
+            query GetCollectionProductsFiltered($handle: String!, $first: Int!, $sortKey: ProductCollectionSortKeys, $reverse: Boolean, $filters: [ProductFilter!]) {
+                collection(handle: $handle) {
+                    products(first: $first, sortKey: $sortKey, reverse: $reverse, filters: $filters) {
+                        edges {
+                            node {
+                                id
+                                title
+                                handle
+                                description
+                                descriptionHtml
+                                onlineStoreUrl
+                                featuredImage { url altText }
+                                priceRange {
+                                    minVariantPrice { amount currencyCode }
+                                    maxVariantPrice { amount currencyCode }
+                                }
+                                variants(first: 1) {
+                                    edges {
+                                        node {
+                                            id
+                                            price { amount currencyCode }
+                                            compareAtPrice { amount currencyCode }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }';
+
+        } else {
+            // Strategy B: Global Context (All Products)
+            // Use 'query' string syntax.
+            
+            $variables['query'] = $queryString;
+            
+            $query = '
+            query GetFilteredProducts($first: Int!, $sortKey: ProductSortKeys, $reverse: Boolean, $query: String) {
+                products(first: $first, sortKey: $sortKey, reverse: $reverse, query: $query) {
+                    edges {
+                        node {
+                            id
+                            title
+                            handle
+                            description
+                            descriptionHtml
+                            onlineStoreUrl
+                            featuredImage { url altText }
+                            priceRange {
+                                minVariantPrice { amount currencyCode }
+                                maxVariantPrice { amount currencyCode }
+                            }
+                            variants(first: 1) {
+                                edges {
+                                    node {
+                                        id
+                                        price { amount currencyCode }
+                                        compareAtPrice { amount currencyCode }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }';
+        }
+
+        $cache_key = 'shopify_filtered_' . md5(json_encode($variables));
+        $cached = get_transient($cache_key);
+        if ($cached) return $cached;
+
+        $init = self::init();
+        if (is_wp_error($init)) return $init;
+
+        $result = Shopify_Wp_GraphQL::execute_query($query, $variables);
+        
+        // Log Result Error if any
+        if (is_wp_error($result)) {
+             file_put_contents(WP_CONTENT_DIR . '/shopify_filter_debug.log', date('Y-m-d H:i:s') . " - Error: " . $result->get_error_message() . "\n", FILE_APPEND);
+             return $result;
+        } else if (isset($result['errors'])) {
+             file_put_contents(WP_CONTENT_DIR . '/shopify_filter_debug.log', date('Y-m-d H:i:s') . " - GraphQL Error: " . json_encode($result['errors']) . "\n", FILE_APPEND);
+        }
+        
+        $flattened = [];
+        // Handle Result Structure Difference
+        $edges = [];
+        if (!empty($args['collection'])) {
+            $edges = $result['data']['collection']['products']['edges'] ?? [];
+        } else {
+            $edges = $result['data']['products']['edges'] ?? [];
+        }
+
+        if (!empty($edges)) {
+            foreach ($edges as $edge) {
+                $flattened[] = $edge['node'];
+            }
+        }
+        
+        // DEBUG: Log Result Count
+        file_put_contents(WP_CONTENT_DIR . '/shopify_filter_debug.log', date('Y-m-d H:i:s') . " - Result Count: " . count($flattened) . "\n", FILE_APPEND);
+
+        if (empty($flattened) && isset($_GET['breakdance_builder'])) {
+             // Return samples in builder if empty to visualize layout
+             return self::get_sample_products($limit);
+        }
+
+        set_transient($cache_key, $flattened, HOUR_IN_SECONDS);
+        return $flattened;
+    }
+
+    /**
      * Get a list of collections.
      * 
      * @param int $limit

@@ -1,12 +1,12 @@
 <?php
 
-namespace BreakdanceShopify\Elements;
+namespace BreakdanceShopify;
 
 use function Breakdance\Elements\c;
 use function Breakdance\Elements\PresetSections\getPresetSection;
 
 \Breakdance\ElementStudio\registerElementForEditing(
-    "BreakdanceShopify\\Elements\\ShopifyCollections",
+    "BreakdanceShopify\\ShopifyCollections",
     \Breakdance\Util\getdirectoryPathRelativeToPluginFolder(__DIR__)
 );
 
@@ -236,13 +236,50 @@ class ShopifyCollections extends \Breakdance\Elements\Element
         false,
         [],
         
-      )],
-        ['type' => 'section', 'layout' => 'inline', 'sectionOptions' => ['type' => 'popout']],
+      ), c(
+        "custom_areas",
+        "Custom Areas",
+        [c(
+        "areas",
+        "Areas",
+        [c(
+        "global_block",
+        "Global Block",
+        [],
+        ['type' => 'global_block_chooser', 'layout' => 'vertical'],
         false,
         false,
         [],
         
-      )];
+      ), c(
+        "order",
+        "Order",
+        [],
+        ['type' => 'number', 'layout' => 'inline'],
+        true,
+        false,
+        [],
+        
+      )],
+        ['type' => 'repeater', 'groupLabel' => 'Area', 'layout' => 'vertical'],
+      false,
+      false,
+      [],
+      
+    )],
+      ['type' => 'section', 'layout' => 'inline', 'sectionOptions' => ['type' => 'popout']],
+      false,
+      false,
+      [],
+      
+    ),
+  ],
+  ['type' => 'section', 'layout' => 'vertical'],
+  false,
+  false,
+  [],
+
+)];
     }
 
     static function contentControls()

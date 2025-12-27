@@ -101,25 +101,7 @@ class ShopifyPage extends \Breakdance\Elements\Element
 
     static function contentControls()
     {
-        return [c(
-        "query",
-        "Query",
-        [c(
-        "handle",
-        "Page Handle",
-        [],
-        ['type' => 'text', 'layout' => 'vertical', 'placeholder' => 'about-us'],
-        false,
-        false,
-        [],
-        
-      )],
-        ['type' => 'section'],
-        false,
-        false,
-        [],
-        
-      )];
+        return [];
     }
 
     static function settingsControls()
