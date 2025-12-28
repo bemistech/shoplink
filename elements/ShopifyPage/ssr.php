@@ -79,7 +79,7 @@ foreach ($products as $product) {
     // Image
     $image_url = $product['featuredImage']['url'] ?? '';
     $image_alt = $product['featuredImage']['altText'] ?? $title;
-    $url = '/products/' . $handle;
+    $url = home_url('/products/' . $handle);
     
     echo '<div class="bde-shopify-product-card">';
     

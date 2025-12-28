@@ -371,7 +371,8 @@ class ShopifyApi {
     public static function get_product_url($manual_handle = null) {
         $product = self::get_current_product($manual_handle);
         if (is_wp_error($product)) return '';
-        return $product['onlineStoreUrl'] ?? '#';
+        // Return local URL assuming /product/{handle} structure
+        return home_url('/products/' . ($product['handle'] ?? ''));
     }
 
     /**
