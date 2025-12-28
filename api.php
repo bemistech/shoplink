@@ -972,6 +972,10 @@ class ShopifyApi {
         }";
 
         $cache_key = 'shopify_collections_' . $limit;
+        
+        // DEBUG: Force clear
+        delete_transient($cache_key);
+
         $cached = get_transient($cache_key);
         if ($cached) return $cached;
 
@@ -989,6 +993,9 @@ class ShopifyApi {
 
         $result = Shopify_Wp_GraphQL::execute_query($query);
         
+        // DEBUG: Log Collections Result
+        file_put_contents(WP_CONTENT_DIR . '/shopify_debug.log', date('Y-m-d H:i:s') . " - get_collections result: " . print_r($result, true) . "\n", FILE_APPEND);
+
         if (is_wp_error($result)) {
             return self::get_sample_collections($limit);
         }

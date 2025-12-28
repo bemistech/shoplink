@@ -19,11 +19,8 @@ $align = $propertiesData['design']['list']['align'] ?? 'left';
 // Fetch collections
 $collections = ShopifyApi::get_collections($limit);
 
-echo '<pre style="background:#eee; padding:10px; border:1px solid #ccc; z-index:9999; position:relative;">';
-echo "Limit: " . $limit . "\n";
-echo "Count: " . (is_array($collections) ? count($collections) : 'Not Array') . "\n";
-echo "Is WP Error: " . (is_wp_error($collections) ? 'Yes: ' . $collections->get_error_message() : 'No') . "\n";
-echo '</pre>';
+// Debug log (hidden)
+echo '<div class="bde-shopify-collections-debug" style="display:none;">Collections: ' . (is_array($collections) ? count($collections) : '0') . '</div>';
 
 if (is_wp_error($collections)) {
     if (isset($_GET['breakdance_builder'])) {
@@ -85,7 +82,7 @@ if ($layout === 'slider') {
         $description = $collection['descriptionHtml'] ?? $collection['description'] ?? '';
         $image_url = $collection['image']['url'] ?? '';
         $image_alt = $collection['image']['altText'] ?? $title;
-        $url = '/collections/' . $collection['handle']; 
+        $url = home_url('/shop/?collection=' . $collection['handle']); 
 
         echo '<div class="swiper-slide bde-shopify-collection-card">';
         
@@ -139,7 +136,7 @@ if ($layout === 'slider') {
         $description = $collection['descriptionHtml'] ?? $collection['description'] ?? '';
         $image_url = $collection['image']['url'] ?? '';
         $image_alt = $collection['image']['altText'] ?? $title;
-        $url = '/collections/' . $collection['handle'];
+        $url = home_url('/shop/?collection=' . $collection['handle']);
         
         echo '<div class="bde-shopify-collection-card">';
         

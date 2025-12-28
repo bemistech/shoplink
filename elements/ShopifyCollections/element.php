@@ -47,6 +47,16 @@ class ShopifyCollections extends \Breakdance\Elements\Element
         return __CLASS__;
     }
 
+    static function template()
+    {
+        return file_get_contents(__DIR__ . '/html.twig');
+    }
+
+    static function defaultCss()
+    {
+        return file_get_contents(__DIR__ . '/default.css');
+    }
+
     static function properties()
     {
         return [
