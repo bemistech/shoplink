@@ -1,6 +1,6 @@
 <?php
 
-namespace BreakdanceShopify;
+namespace Shoplink;
 
 use WP_Error;
 use Shopify_Wp_GraphQL;
@@ -565,7 +565,7 @@ class ShopifyApi {
      * @return array
      */
     public static function get_collections_options() {
-        $options = get_transient('breakdance_shopify_collection_options');
+        $options = get_transient('shoplink_collection_options');
 
         if ($options !== false) {
             return $options;
@@ -621,10 +621,7 @@ class ShopifyApi {
      * @return array
      */
     public static function get_product_types() {
-        // DEBUG: Force clear transient
-        delete_transient('breakdance_shopify_product_types');
-
-        $types = get_transient('breakdance_shopify_product_types');
+        $types = get_transient('shoplink_product_types');
         if ($types !== false) return $types;
 
         $init = self::init();
@@ -658,10 +655,7 @@ class ShopifyApi {
         
         sort($items);
         
-        // DEBUG: Log Types
-        file_put_contents(WP_CONTENT_DIR . '/shopify_debug.log', date('Y-m-d H:i:s') . " - Product Types (Aggregated): " . print_r($items, true) . "\n", FILE_APPEND);
-
-        set_transient('breakdance_shopify_product_types', $items, HOUR_IN_SECONDS);
+        set_transient('shoplink_product_types', $items, HOUR_IN_SECONDS);
         return $items;
     }
 
@@ -727,9 +721,6 @@ class ShopifyApi {
         $args = wp_parse_args($args, $defaults);
         $limit = intval($args['limit']);
 
-        // DEBUG: Log Args
-        file_put_contents(WP_CONTENT_DIR . '/shopify_filter_debug.log', date('Y-m-d H:i:s') . " - Args: " . print_r($args, true) . "\n", FILE_APPEND);
-
         // Build Query String
         $queryParts = [];
 
@@ -772,9 +763,6 @@ class ShopifyApi {
         if (empty($queryString)) {
             $queryString = null;
         }
-
-        // DEBUG: Log Query String
-        file_put_contents(WP_CONTENT_DIR . '/shopify_filter_debug.log', date('Y-m-d H:i:s') . " - Query String: " . $queryString . "\n", FILE_APPEND);
 
         // Variables common
         $variables = [
@@ -823,9 +811,6 @@ class ShopifyApi {
 
             $variables['handle'] = $args['collection'];
             $variables['filters'] = $filters;
-
-            // DEBUG: Collection Strategy
-            file_put_contents(WP_CONTENT_DIR . '/shopify_filter_debug.log', date('Y-m-d H:i:s') . " - Strategy A (Collection): Handle=" . $variables['handle'] . " Filters=" . json_encode($filters) . "\n", FILE_APPEND);
 
             // Sort Key for Collection is ProductCollectionSortKeys
             // Valid: TITLE, PRICE, BEST_SELLING, CREATED, ID, MANUAL, COLLECTION_DEFAULT, RELEVANCE.
@@ -911,11 +896,11 @@ class ShopifyApi {
         $result = Shopify_Wp_GraphQL::execute_query($query, $variables);
         
         // Log Result Error if any
+        // Log Result Error if any
         if (is_wp_error($result)) {
-             file_put_contents(WP_CONTENT_DIR . '/shopify_filter_debug.log', date('Y-m-d H:i:s') . " - Error: " . $result->get_error_message() . "\n", FILE_APPEND);
              return $result;
         } else if (isset($result['errors'])) {
-             file_put_contents(WP_CONTENT_DIR . '/shopify_filter_debug.log', date('Y-m-d H:i:s') . " - GraphQL Error: " . json_encode($result['errors']) . "\n", FILE_APPEND);
+             // handle errors
         }
         
         $flattened = [];
@@ -933,9 +918,6 @@ class ShopifyApi {
             }
         }
         
-        // DEBUG: Log Result Count
-        file_put_contents(WP_CONTENT_DIR . '/shopify_filter_debug.log', date('Y-m-d H:i:s') . " - Result Count: " . count($flattened) . "\n", FILE_APPEND);
-
         if (empty($flattened) && isset($_GET['breakdance_builder'])) {
              // Return samples in builder if empty to visualize layout
              return self::get_sample_products($limit);
@@ -954,9 +936,6 @@ class ShopifyApi {
     public static function get_collections($limit = 8) {
         $limit = intval($limit);
         
-        // Debug Log
-        file_put_contents(WP_CONTENT_DIR . '/shopify_debug.log', date('Y-m-d H:i:s') . " - get_collections called. GET keys: " . implode(',', array_keys($_GET)) . "\n", FILE_APPEND);
-        
         $query = "{
             collections(first: $limit) {
                 edges {
@@ -974,9 +953,6 @@ class ShopifyApi {
 
         $cache_key = 'shopify_collections_' . $limit;
         
-        // DEBUG: Force clear
-        delete_transient($cache_key);
-
         $cached = get_transient($cache_key);
         if ($cached) return $cached;
 
@@ -994,9 +970,6 @@ class ShopifyApi {
 
         $result = Shopify_Wp_GraphQL::execute_query($query);
         
-        // DEBUG: Log Collections Result
-        file_put_contents(WP_CONTENT_DIR . '/shopify_debug.log', date('Y-m-d H:i:s') . " - get_collections result: " . print_r($result, true) . "\n", FILE_APPEND);
-
         if (is_wp_error($result)) {
             return self::get_sample_collections($limit);
         }

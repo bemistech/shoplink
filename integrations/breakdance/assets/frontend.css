@@ -1,0 +1,44 @@
+/* Global Shoplink Styles */
+
+/* Headings */
+.bde-shoplink-product-title,
+.bde-shoplink-collection-title {
+    color: var(--shoplink-heading-color, #111);
+}
+
+/* Text */
+.bde-shoplink-product-price,
+.bde-shoplink-collection-description,
+.bde-shoplink-product-description {
+    color: var(--shoplink-text-color, #333);
+}
+
+/* Links */
+a.bde-shoplink-product-link:not(.bde-shoplink-product-button),
+a.bde-shoplink-collection-link {
+    color: var(--shoplink-link-color, #000);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a.bde-shoplink-product-link:not(.bde-shoplink-product-button):hover,
+a.bde-shoplink-collection-link:hover {
+    opacity: 0.8;
+}
+
+/* Buttons (Fallback/Global Override if cleaner than inline) */
+/* Note: Inline styles in SSR might override this unless important or removed. 
+   We updated SSR to use var() inline, so this is secondary. */
+.bde-shoplink-product-button,
+.bde-shoplink-buy-now-button {
+    background-color: var(--shoplink-primary-color, #000);
+    color: var(--shoplink-secondary-color, #fff);
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.bde-shoplink-product-button:hover,
+.bde-shoplink-buy-now-button:hover {
+    opacity: 0.9;
+}
