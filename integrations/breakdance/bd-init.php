@@ -15,10 +15,10 @@ function init() {
     add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\\enqueue_scripts' );
     
     // Load Templates
-    require_once dir() . 'templates.php';
-    
+    require_once dir() . 'bd-templates.php';
+
     // Load Settings
-    require_once dir() . 'settings.php';
+    require_once dir() . 'bd-settings.php';
 }
 
 /**

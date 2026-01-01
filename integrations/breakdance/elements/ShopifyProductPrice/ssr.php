@@ -1,6 +1,6 @@
 <?php
 
-use Shoplink\ShopifyApi;
+use Shoplink\ShoplinkAPI;
 
 /**
  * @var array $propertiesData
@@ -10,8 +10,8 @@ use Shoplink\ShopifyApi;
 // 1. Try to get context from parent Product Builder
 $handle = $parentPropertiesData['content']['context']['manual_handle'] ?? null;
 
-$priceDisplay = ShopifyApi::get_product_price($handle);
-$compareAtDisplay = ShopifyApi::get_product_compare_at_price($handle);
+$priceDisplay = ShoplinkAPI::get_product_price($handle);
+$compareAtDisplay = ShoplinkAPI::get_product_compare_at_price($handle);
 
 if (empty($priceDisplay)) {
     return;

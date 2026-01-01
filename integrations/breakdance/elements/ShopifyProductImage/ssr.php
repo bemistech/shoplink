@@ -1,6 +1,6 @@
 <?php
 
-use Shoplink\ShopifyApi;
+use Shoplink\ShoplinkAPI;
 
 /**
  * @var array $propertiesData
@@ -10,8 +10,8 @@ use Shoplink\ShopifyApi;
 // 1. Try to get context from parent Product Builder
 $handle = $parentPropertiesData['content']['context']['manual_handle'] ?? null;
 
-$url = ShopifyApi::get_product_image_src($handle);
-$alt = ShopifyApi::get_product_image_alt($handle);
+$url = ShoplinkAPI::get_product_image_src($handle);
+$alt = ShoplinkAPI::get_product_image_alt($handle);
 
 if (empty($url)) {
     return;

@@ -1,6 +1,6 @@
 <?php
 
-use Shoplink\ShopifyApi;
+use Shoplink\ShoplinkAPI;
 
 // Defaults
 $limitRaw = $propertiesData['content']['query']['limit'] ?? 8;
@@ -17,7 +17,7 @@ $gap = $propertiesData['design']['list']['gap'] ?? 20;
 $align = $propertiesData['design']['list']['align'] ?? 'left';
 
 // Fetch collections
-$collections = ShopifyApi::get_collections($limit);
+$collections = ShoplinkAPI::get_collections($limit);
 
 if (is_wp_error($collections)) {
     if (isset($_GET['breakdance_builder'])) {
@@ -73,7 +73,7 @@ if ($layout === 'slider') {
     echo '<div class="swiper-wrapper">';
     
     foreach ($collections as $collection) {
-        ShopifyApi::push_collection_context($collection['handle']);
+        ShoplinkAPI::push_collection_context($collection['handle']);
         
         $title = $collection['title'];
         $description = $collection['descriptionHtml'] ?? $collection['description'] ?? '';
@@ -109,7 +109,7 @@ if ($layout === 'slider') {
         }
         
         echo '</div>'; // End slide
-        ShopifyApi::pop_collection_context();
+        ShoplinkAPI::pop_collection_context();
     }
     
     echo '</div>'; // End swiper-wrapper
@@ -127,7 +127,7 @@ if ($layout === 'slider') {
     echo '<div class="bde-shoplink-collections-grid" style="display: grid; grid-template-columns: repeat(' . intval($columns) . ', 1fr); gap: ' . intval($gap) . 'px; text-align: ' . esc_attr($align) . ';">';
     
     foreach ($collections as $collection) {
-        ShopifyApi::push_collection_context($collection['handle']);
+        ShoplinkAPI::push_collection_context($collection['handle']);
         
         $title = $collection['title'];
         $description = $collection['descriptionHtml'] ?? $collection['description'] ?? '';
@@ -163,7 +163,7 @@ if ($layout === 'slider') {
         }
         
         echo '</div>'; // End card
-        ShopifyApi::pop_collection_context();
+        ShoplinkAPI::pop_collection_context();
     }
     
     echo '</div>'; // End grid

@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Handle Search Integration
+ * Adds Shopify Products to WordPress Search Results
  */
 class SearchIntegration {
 
@@ -55,7 +55,7 @@ class SearchIntegration {
         }
 
         // Fetch from Shopify
-        $products = ShopifyApi::get_products_filtered( [
+        $products = ShoplinkAPI::get_products_filtered( [
             'limit' => 6, // Limit injection count
             'q'     => $search_term
         ] );

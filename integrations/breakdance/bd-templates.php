@@ -2,7 +2,7 @@
 
 namespace Shoplink\Integrations\Breakdance;
 
-use Shoplink\ShopifyApi;
+use Shoplink\ShoplinkAPI;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -41,7 +41,7 @@ function register_shopify_templates() {
  * Get Preview Items for Shopify Products
  */
 function get_shopify_product_preview_items() {
-    $products = ShopifyApi::get_products_filtered(['limit' => 20]);
+    $products = ShoplinkAPI::get_products_filtered(['limit' => 20]);
     
     if ( is_wp_error( $products ) || empty( $products ) ) {
         return [];

@@ -8,7 +8,7 @@
 $manual_handle = $parentPropertiesData['content']['context']['manual_handle'] ?? null;
 
 // Check if product exists contextually
-$url = \Shoplink\ShopifyApi::get_product_url($manual_handle);
+$url = \Shoplink\ShoplinkAPI::get_product_url($manual_handle);
 
 if (empty($url)) {
     return;

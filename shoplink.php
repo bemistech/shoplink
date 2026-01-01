@@ -11,14 +11,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// Define Constants
 define( 'SHOPLINK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SHOPLINK_URL', plugin_dir_url( __FILE__ ) );
 
+// Load Plugin
 require_once SHOPLINK_PATH . 'api.php';
-require_once SHOPLINK_PATH . 'includes/search.php'; // Search Integration
-require_once SHOPLINK_PATH . 'includes/styles/StyleController.php';
-require_once SHOPLINK_PATH . 'includes/admin/Menu.php';
-require_once SHOPLINK_PATH . 'includes/admin/SettingsPage.php';
+require_once SHOPLINK_PATH . 'includes/includes-init.php';
+require_once SHOPLINK_PATH . 'integrations/integrations-init.php';
 
 // Initialize Global Components
 \Shoplink\StyleController::init();
@@ -26,16 +26,6 @@ if ( is_admin() ) {
     \Shoplink\Admin\Menu::init();
 }
 
-/**
- * Load Integrations
- */
-/**
- * Load Integrations
- */
-function shoplink_load_integrations() {
-    require_once SHOPLINK_PATH . 'integrations/breakdance/init.php';
-}
-add_action( 'breakdance_loaded', 'shoplink_load_integrations' );
 
 /**
  * Query Shopify Products Helper (Migrated from mu-plugin)

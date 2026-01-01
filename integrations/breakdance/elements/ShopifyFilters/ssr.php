@@ -1,6 +1,6 @@
 <?php
 
-use Shoplink\ShopifyApi;
+use Shoplink\ShoplinkAPI;
 
 $widgets = $propertiesData['content']['widgets'] ?? [];
 
@@ -77,7 +77,7 @@ foreach ($widgets as $widget) {
             break;
 
         case 'collection':
-            $options = ShopifyApi::get_collections_options();
+            $options = ShoplinkAPI::get_collections_options();
             echo '<select name="collection" class="bde-shoplink-filter-select">';
             foreach ($options as $opt) {
                 $selected = ($current_collection === $opt['value']) ? 'selected' : '';
@@ -87,7 +87,7 @@ foreach ($widgets as $widget) {
             break;
 
         case 'categories':
-            $types = ShopifyApi::get_product_types();
+            $types = ShoplinkAPI::get_product_types();
             echo '<select name="product_type" class="bde-shoplink-filter-select">';
             echo '<option value="">All Categories</option>';
             foreach ($types as $type) {
@@ -98,7 +98,7 @@ foreach ($widgets as $widget) {
             break;
 
         case 'tags':
-            $tags = ShopifyApi::get_shop_tags();
+            $tags = ShoplinkAPI::get_shop_tags();
             echo '<div class="bde-shoplink-filter-tags">';
             if (empty($tags)) {
                 echo '<div class="bde-shoplink-filter-empty">No tags found</div>';

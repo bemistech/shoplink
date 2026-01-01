@@ -1,8 +1,8 @@
 <?php
 
-use Shoplink\ShopifyApi;
+use Shoplink\ShoplinkAPI;
 
-$title = ShopifyApi::get_collection_title();
+$title = ShoplinkAPI::get_collection_title();
 
 if (!$title) {
     if (isset($_GET['breakdance_builder'])) {

@@ -1,9 +1,9 @@
 <?php
 
-use Shoplink\ShopifyApi;
+use Shoplink\ShoplinkAPI;
 
-$image_src = ShopifyApi::get_collection_image_src();
-$image_alt = ShopifyApi::get_collection_image_alt();
+$image_src = ShoplinkAPI::get_collection_image_src();
+$image_alt = ShoplinkAPI::get_collection_image_alt();
 
 if (!$image_src) {
     if (isset($_GET['breakdance_builder'])) {

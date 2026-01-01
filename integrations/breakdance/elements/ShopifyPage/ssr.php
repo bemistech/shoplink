@@ -1,6 +1,6 @@
 <?php
 
-use Shoplink\ShopifyApi;
+use Shoplink\ShoplinkAPI;
 
 // Defaults for Shop Page Element
 $limit = 12; // Standard default
@@ -37,7 +37,7 @@ $args = [
 ];
 
 // Fetch products
-$products = ShopifyApi::get_products_filtered($args);
+$products = ShoplinkAPI::get_products_filtered($args);
 
 // Debug
 if (is_wp_error($products)) {
@@ -56,7 +56,7 @@ if (empty($products)) {
 echo '<div class="bde-shoplink-page-grid" style="display: grid; grid-template-columns: repeat(' . intval($columns) . ', 1fr); gap: ' . intval($gap) . 'px;">';
 
 foreach ($products as $product) {
-    ShopifyApi::push_context($product['handle']);
+    ShoplinkAPI::push_context($product['handle']);
     
     // Direct Data Access (Optimization)
     $title = $product['title'];
@@ -104,7 +104,7 @@ foreach ($products as $product) {
     echo '<a href="' . esc_url($url) . '" class="bde-shoplink-product-button" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: var(--shoplink-primary-color, #000); color: var(--shoplink-secondary-color, #fff); text-decoration: none;">View Product</a>';
     
     echo '</div>'; // End card
-    ShopifyApi::pop_context();
+    ShoplinkAPI::pop_context();
 }
 
 echo '</div>'; // End grid

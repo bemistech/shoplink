@@ -335,7 +335,7 @@ class ShopifyProducts extends \Breakdance\Elements\Element
         "collection_handle",
         "Collection",
         [],
-        ['type' => 'dropdown', 'layout' => 'vertical', 'items' => \Shoplink\ShopifyApi::get_collections_options(), 'default' => ''],
+        ['type' => 'dropdown', 'layout' => 'vertical', 'items' => \Shoplink\ShoplinkAPI::get_collections_options(), 'default' => ''],
         false,
         false,
         [],

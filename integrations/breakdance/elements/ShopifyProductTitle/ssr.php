@@ -7,7 +7,7 @@
 // 1. Try to get context from parent Product Builder
 $handle = $parentPropertiesData['content']['context']['manual_handle'] ?? null;
 
-$title = ShopifyApi::get_product_title($handle);
+$title = ShoplinkAPI::get_product_title($handle);
 
 if (empty($title)) {
     return;

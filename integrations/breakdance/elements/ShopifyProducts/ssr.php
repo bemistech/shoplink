@@ -1,6 +1,6 @@
 <?php
 
-use Shoplink\ShopifyApi;
+use Shoplink\ShoplinkAPI;
 
 // Defaults
 $limitRaw = $propertiesData['content']['query']['limit'] ?? 8;
@@ -54,7 +54,7 @@ $args = [
 ];
 
 // Fetch products
-$products = ShopifyApi::get_products_filtered($args);
+$products = ShoplinkAPI::get_products_filtered($args);
 
 if (is_wp_error($products)) {
     if (isset($_GET['breakdance_builder'])) {
@@ -110,11 +110,11 @@ if ($layout === 'slider') {
     echo '<div class="swiper-wrapper">';
     
     foreach ($products as $product) {
-        ShopifyApi::push_context($product['handle']);
+        ShoplinkAPI::push_context($product['handle']);
         
-        $title = ShopifyApi::get_product_title();
-        $handle = ShopifyApi::get_product_handle();
-        $priceDisplay = ShopifyApi::get_product_price();
+        $title = ShoplinkAPI::get_product_title();
+        $handle = ShoplinkAPI::get_product_handle();
+        $priceDisplay = ShoplinkAPI::get_product_price();
         // Handle Price Range
         if (isset($product['priceRange'])) {
             $min = $product['priceRange']['minVariantPrice']['amount'];
@@ -124,9 +124,9 @@ if ($layout === 'slider') {
                  $priceDisplay = $currency . ' ' . $min . ' - ' . $currency . ' ' . $max;
             }
         }
-        $image_url = ShopifyApi::get_product_image_src();
-        $image_alt = ShopifyApi::get_product_image_alt();
-        $url = ShopifyApi::get_product_url();
+        $image_url = ShoplinkAPI::get_product_image_src();
+        $image_alt = ShoplinkAPI::get_product_image_alt();
+        $url = ShoplinkAPI::get_product_url();
         
         echo '<div class="swiper-slide bde-shoplink-product-card">';
         
@@ -159,7 +159,7 @@ if ($layout === 'slider') {
         }
         
         echo '</div>'; // End slide
-        ShopifyApi::pop_context();
+        ShoplinkAPI::pop_context();
     }
     
     echo '</div>'; // End swiper-wrapper
@@ -177,11 +177,11 @@ if ($layout === 'slider') {
     echo '<div class="bde-shoplink-products-grid" style="display: grid; grid-template-columns: repeat(' . intval($columns) . ', 1fr); gap: ' . intval($gap) . 'px; text-align: ' . esc_attr($align) . ';">';
     
     foreach ($products as $product) {
-        ShopifyApi::push_context($product['handle']);
+        ShoplinkAPI::push_context($product['handle']);
         
-        $title = ShopifyApi::get_product_title();
-        $handle = ShopifyApi::get_product_handle();
-        $priceDisplay = ShopifyApi::get_product_price();
+        $title = ShoplinkAPI::get_product_title();
+        $handle = ShoplinkAPI::get_product_handle();
+        $priceDisplay = ShoplinkAPI::get_product_price();
         // Handle Price Range
         if (isset($product['priceRange'])) {
             $min = $product['priceRange']['minVariantPrice']['amount'];
@@ -191,9 +191,9 @@ if ($layout === 'slider') {
                  $priceDisplay = $currency . ' ' . $min . ' - ' . $currency . ' ' . $max;
             }
         }
-        $image_url = ShopifyApi::get_product_image_src();
-        $image_alt = ShopifyApi::get_product_image_alt();
-        $url = ShopifyApi::get_product_url();
+        $image_url = ShoplinkAPI::get_product_image_src();
+        $image_alt = ShoplinkAPI::get_product_image_alt();
+        $url = ShoplinkAPI::get_product_url();
         
         echo '<div class="bde-shoplink-product-card">';
         
@@ -226,7 +226,7 @@ if ($layout === 'slider') {
         }
         
         echo '</div>'; // End card
-        ShopifyApi::pop_context();
+        ShoplinkAPI::pop_context();
     }
     
     echo '</div>'; // End grid

@@ -5,7 +5,7 @@ namespace Shoplink;
 use WP_Error;
 use Shopify_Wp_GraphQL;
 
-class ShopifyApi {
+class ShoplinkAPI {
     
     public static $current_context_handle = null; // Kept for backward compatibility/internal pointer
     public static $context_stack = [];

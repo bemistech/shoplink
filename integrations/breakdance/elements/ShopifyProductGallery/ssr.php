@@ -1,6 +1,6 @@
 <?php
 
-use Shoplink\ShopifyApi;
+use Shoplink\ShoplinkAPI;
 
 /**
  * @var array $propertiesData
@@ -10,7 +10,7 @@ use Shoplink\ShopifyApi;
 // 1. Try to get context from parent Product Builder
 $handle = $parentPropertiesData['content']['context']['manual_handle'] ?? null;
 
-$product = ShopifyApi::get_current_product($handle);
+$product = ShoplinkAPI::get_current_product($handle);
 
 if(is_wp_error($product) || empty($product)) {
     return;
