@@ -1,5 +1,6 @@
-jQuery(document).ready(function($){
-    if ( typeof $.fn.wpColorPicker === 'function' ) {
-        $('.shoplink-color-field').wpColorPicker();
+document.addEventListener('DOMContentLoaded', function() {
+    // wpColorPicker is a jQuery plugin, so we must use jQuery to initialize it.
+    if (typeof jQuery !== 'undefined' && typeof jQuery.fn.wpColorPicker === 'function') {
+        jQuery('.shoplink-color-field').wpColorPicker();
     }
 });

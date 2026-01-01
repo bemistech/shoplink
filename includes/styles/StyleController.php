@@ -41,11 +41,14 @@ class StyleController {
         $styles = array_merge( self::$defaults, $saved );
 
         // Breakdance Overrides
+        // Breakdance Overrides
         if ( function_exists( '\Breakdance\Settings\getGlobalSettings' ) ) {
-            $bd_settings = \Breakdance\Settings\getGlobalSettings('shoplink');
-            if ( $bd_settings && is_array( $bd_settings ) ) {
-                // Map fields if necessary, assuming keys match
-                foreach ( $bd_settings as $key => $value ) {
+            $bd_settings = \Breakdance\Settings\getGlobalSettings();
+            
+            // Check if our section exists
+            if ( ! empty( $bd_settings['shoplink'] ) && is_array( $bd_settings['shoplink'] ) ) {
+                $shoplink_settings = $bd_settings['shoplink'];
+                foreach ( $shoplink_settings as $key => $value ) {
                     if ( ! empty( $value ) && isset( $styles[ $key ] ) ) {
                         $styles[ $key ] = $value;
                     }
